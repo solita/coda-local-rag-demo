@@ -5,7 +5,7 @@ from vector_index import VectorIndex
 
 
 class ChatEngine:
-    def __init__(self, chat_model="phi3:medium"):
+    def __init__(self, chat_model: str):
         self.chat_model = chat_model
 
     def generate_response(self, prompt: str, vector_index: VectorIndex):

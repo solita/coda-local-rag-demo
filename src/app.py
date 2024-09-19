@@ -3,51 +3,46 @@ import streamlit as st
 from chat_engine import ChatEngine
 from vector_index import VectorIndex
 
+@st.cache_resource
+def get_chat_engine(chat_model: str):
+    st.session_state.chat_engine = ChatEngine(chat_model)
 
-class App:
-    def __init__(self, title="Local Chatbot"):
-        self.app_title = title
-        self.chat_engine = ChatEngine()
-        self.vector_index = VectorIndex(
-            db_path="./db",
-            doc_path="./docs",
-            collection_name="local-rag",
-            model_name="BAAI/bge-base-en-v1.5",
-            remove_old=True,
+@st.cache_resource
+def get_vector_index(collection_name: str, model_name: str):
+    st.session_state.vector_index = VectorIndex(
+        db_path="./db",
+        doc_path="./docs",
+        collection_name=collection_name,
+        model_name=model_name,
+        remove_old=True,
+    )
+
+get_chat_engine("llama3.1:8b")
+get_vector_index("local-rag", "BAAI/bge-base-en-v1.5")
+
+if "response" not in st.session_state:
+    st.session_state.response = ""
+
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+st.title("Local Chatbot")
+
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+if prompt := st.chat_input("Say something"):
+    with st.chat_message(name="user"):
+        st.markdown(prompt)
+
+    st.session_state.messages.append({"role": "user", "content": prompt})
+
+    with st.chat_message(name="assistant"):
+        st.session_state.response_content = st.write_stream(
+            st.session_state.chat_engine.generate_response(prompt, st.session_state.vector_index)
         )
 
-        st.session_state.response = ""
-        st.session_state.messages = []
-
-    def run(self):
-        st.title(self.app_title)
-
-        self.draw_message_history()
-        self.chat_input()
-
-    def draw_message_history(self):
-        if "message" in st.session_state.messages:
-            for message in st.session_state.messages:
-                with st.chat_message(message["role"]):
-                    st.markdown(message["content"])
-
-    def chat_input(self):
-        if prompt := st.chat_input("Say something"):
-            with st.chat_message(name="user"):
-                st.markdown(prompt)
-
-            st.session_state.messages.append({"role": "user", "content": prompt})
-
-            with st.chat_message(name="assistant"):
-                st.session_state.response_content = st.write_stream(
-                    self.chat_engine.generate_response(prompt, self.vector_index)
-                )
-
-            st.session_state.messages.append(
-                {"role": "assistant", "content": st.session_state.response_content}
-            )
-
-
-app = App()
-
-app.run()
+    st.session_state.messages.append(
+        {"role": "assistant", "content": st.session_state.response_content}
+    )

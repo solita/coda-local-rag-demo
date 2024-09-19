@@ -63,7 +63,7 @@ class VectorIndex:
 @st.cache_data
 def get_documents(path: str):
     docs = SimpleDirectoryReader(path).load_data()
-    text_splitter = SentenceSplitter(chunk_size=512, chunk_overlap=32)
+    text_splitter = SentenceSplitter(chunk_size=1024, chunk_overlap=32)
 
     for doc in docs:
         doc.doc_id = doc.metadata["file_name"].split(".")[0]
